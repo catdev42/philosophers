@@ -5,8 +5,8 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: myakoven <myakoven@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/04/26 23:28:53 by myakoven          #+#    #+#             */
-/*   Updated: 2024/04/27 00:09:58 by myakoven         ###   ########.fr       */
+/*   Created: 2024/04/28 21:41:46 by myakoven          #+#    #+#             */
+/*   Updated: 2024/04/28 22:26:38 by myakoven         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,72 +14,56 @@
 #include <pthread.h>
 #include <stdio.h>
 
-#include <stdio.h>
-#include <pthread.h>
-
-// Each thread will count TIMES_TO_COUNT times
 #define TIMES_TO_COUNT 21000
 
-#define NC	"\e[0m"
-#define YELLOW	"\e[33m"
-#define BYELLOW	"\e[1;33m"
-#define RED	"\e[31m"
-#define GREEN	"\e[32m"
+typedef struct s_counter
+{
+	pthread_mutex_t	count_mutex;
+	unsigned int	count;
+}					t_counter;
 
 void	*thread_routine(void *data)
 {
-	// Each thread starts here
-	pthread_t	tid;
-	unsigned int	*count; // pointer to the variable created in main
+	pthread_t		tid;
+	t_counter		*counter;
 	unsigned int	i;
 
 	tid = pthread_self();
-	count = (unsigned int *)data;
-	// Print the count before this thread starts iterating:
-	printf("%sThread [%ld]: Count at thread start = %u.%s\n",
-		YELLOW, tid, *count, NC);
+	// apparently the computer didnt know what the variable is...
+	counter = (t_counter *)data;
+	pthread_mutex_lock(&counter->count_mutex);
+	printf("Thread [%ld]: Count at thread start = %u.\n", tid, counter->count);
+	pthread_mutex_unlock(&counter->count_mutex);
 	i = 0;
 	while (i < TIMES_TO_COUNT)
 	{
-		// Iterate TIMES_TO_COUNT times
-		// Increment the counter at each iteration
-		(*count)++;
+		pthread_mutex_lock(&counter->count_mutex);
+		counter->count++;
+		pthread_mutex_unlock(&counter->count_mutex);
 		i++;
 	}
-	// Print the final count when this thread
-	// finishes its own count
-	printf("%sThread [%ld]: Final count = %u.%s\n",
-		BYELLOW, tid, *count, NC);
-	return (NULL); // Thread ends here.
+	pthread_mutex_lock(&counter->count_mutex);
+	printf("Final count = %u\n", counter->count);
+	pthread_mutex_unlock(&counter->count_mutex);
+	return (NULL);
 }
 
 int	main(void)
 {
 	pthread_t	tid1;
 	pthread_t	tid2;
-	// Variable to keep track of the threads' counts:
-	unsigned int	count;
+	t_counter	counter;
 
-	count = 0;
-	// Since each thread counts TIMES_TO_COUNT times and that
-	// we have 2 threads, we expect the final count to be
-	// 2 * TIMES_TO_COUNT:
-	printf("Main: Expected count is %s%u%s\n", GREEN, 
-					2 * TIMES_TO_COUNT, NC);
-	// Thread creation:
-	pthread_create(&tid1, NULL, thread_routine, &count);
+	counter.count = 0;
+	pthread_mutex_init(&counter.count_mutex, NULL);
+	printf("Expected final count is 42000");
+	pthread_create(&tid1, NULL, thread_routine, &counter);
 	printf("Main: Created first thread [%ld]\n", tid1);
-	pthread_create(&tid2, NULL, thread_routine, &count);
+	pthread_create(&tid2, NULL, thread_routine, &counter);
 	printf("Main: Created second thread [%ld]\n", tid2);
-	// Thread joining:
 	pthread_join(tid1, NULL);
-	printf("Main: Joined first thread [%ld]\n", tid1);
 	pthread_join(tid2, NULL);
-	printf("Main: Joined second thread [%ld]\n", tid2);
-	// Final count evaluation:
-	if (count != (2 * TIMES_TO_COUNT))
-		printf("%sMain: ERROR ! Total count is %u%s\n", RED, count, NC);
-	else
-		printf("%sMain: OK. Total count is %u%s\n", GREEN, count, NC);
+	printf("%u \n", counter.count);
+	pthread_mutex_destroy(&counter.count_mutex);
 	return (0);
 }
