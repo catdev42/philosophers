@@ -9,8 +9,9 @@
 # include <stdint.h>
 # include <stdio.h>
 # include <stdlib.h>
+# include <sys/time.h>
 # include <unistd.h>
 
-# define ERROR_MESSAGE "No"
+# define ERROR_MESSAGE "Error Message"
 
 #endif

@@ -5,65 +5,53 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: myakoven <myakoven@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/04/28 21:41:46 by myakoven          #+#    #+#             */
-/*   Updated: 2024/04/28 22:26:38 by myakoven         ###   ########.fr       */
+/*   Created: 2024/04/29 18:54:31 by myakoven          #+#    #+#             */
+/*   Updated: 2024/04/29 19:22:35 by myakoven         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "libft/libft.h"
 #include "philosophers.h"
-#include <pthread.h>
-#include <stdio.h>
 
-#define TIMES_TO_COUNT 21000
-
-typedef struct s_counter
+typedef struct s_fork
 {
-	pthread_mutex_t	count_mutex;
-	unsigned int	count;
-}					t_counter;
+    pthread_mutex_t *forks;
+    
+}	t_fork;
 
-void	*thread_routine(void *data)
+int	main(int argc, char **argv)
 {
-	pthread_t		tid;
-	t_counter		*counter;
-	unsigned int	i;
+	int			i;
+	int			num_philo;
+	pthread_t	*philosopher_ids;
 
-	tid = pthread_self();
-	// apparently the computer didnt know what the variable is...
-	counter = (t_counter *)data;
-	pthread_mutex_lock(&counter->count_mutex);
-	printf("Thread [%ld]: Count at thread start = %u.\n", tid, counter->count);
-	pthread_mutex_unlock(&counter->count_mutex);
-	i = 0;
-	while (i < TIMES_TO_COUNT)
+	if (argc < 2)
 	{
-		pthread_mutex_lock(&counter->count_mutex);
-		counter->count++;
-		pthread_mutex_unlock(&counter->count_mutex);
-		i++;
+		fprintf(2, "Too few args");
+		return (1);
 	}
-	pthread_mutex_lock(&counter->count_mutex);
-	printf("Final count = %u\n", counter->count);
-	pthread_mutex_unlock(&counter->count_mutex);
-	return (NULL);
-}
-
-int	main(void)
-{
-	pthread_t	tid1;
-	pthread_t	tid2;
-	t_counter	counter;
-
-	counter.count = 0;
-	pthread_mutex_init(&counter.count_mutex, NULL);
-	printf("Expected final count is 42000");
-	pthread_create(&tid1, NULL, thread_routine, &counter);
-	printf("Main: Created first thread [%ld]\n", tid1);
-	pthread_create(&tid2, NULL, thread_routine, &counter);
-	printf("Main: Created second thread [%ld]\n", tid2);
-	pthread_join(tid1, NULL);
-	pthread_join(tid2, NULL);
-	printf("%u \n", counter.count);
-	pthread_mutex_destroy(&counter.count_mutex);
-	return (0);
+	num_philo = atol(argv[1]);
+	if (num_philo > INT_MAX || num_philo < 1)
+	{
+		fprintf(2, "Too or too many philosophers, sorry");
+		return (2);
+	}
+	philosopher_ids = calloc((num_philo + 1), sizeof(pthread_t));
+	if (!philosopher_ids)
+	{
+		fprintf(2, "Problems with malloc");
+		return (3);
+	}
+	philosopher_ids[num_philo] = NULL;
+	while (i < num_philo)
+	{
+		pthread_create(&philosopher_ids[i], NULL, FUNCTION, STRUCT);
+		i++;
+		if (i >= num_philo)
+			i = i - num_philo;
+		pthread_create(&philosopher_ids[i], NULL, OTHER_FUNCTION, STRUCT);
+		i++;
+		if (i >= num_philo)
+			i = i - num_philo;
+	}
 }
